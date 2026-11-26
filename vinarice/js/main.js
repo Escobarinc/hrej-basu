@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { City, fetchData, fetchTerrain } from './data.js';
-import { buildWorld } from './world.js';
-import { loadModels } from './models.js';
-import { Game } from './game.js';
-import { Hud } from './hud.js';
-import { Input } from './input.js';
-import { Audio } from './audio.js';
-import { clamp, lerp, nextFrame } from './util.js';
+import { City, fetchData, fetchTerrain } from './data.js?v=20261126120914';
+import { buildWorld } from './world.js?v=20261126120914';
+import { loadModels } from './models.js?v=20261126120914';
+import { Game } from './game.js?v=20261126120914';
+import { Hud } from './hud.js?v=20261126120914';
+import { Input } from './input.js?v=20261126120914';
+import { Audio } from './audio.js?v=20261126120914';
+import { clamp, lerp, nextFrame } from './util.js?v=20261126120914';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
@@ -31,6 +31,19 @@ if (FROM_BASU) {
 const audio = new Audio();
 
 /** Nápověda s klávesovými zkratkami: Tab, F1, ?, tlačítko vlevo nahoře nebo křížek. */
+const tbUp = $('tb-up'), tbDown = $('tb-down');
+
+// telefony (hlavně iPhone) pustí zvuk a hlášení rozhlasu až po dotyku: při každém dotyku probudíme zvuk,
+// při prvním dotyku odemkneme hlasový výstup tichou větou
+let speechUnlocked = false;
+const unlockSound = () => {
+  try { if (audio.ctx && audio.ctx.state !== 'running') audio.ctx.resume(); } catch { /* bez zvuku */ }
+  if (!speechUnlocked && window.speechSynthesis) {
+    speechUnlocked = true;
+    try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; u.lang = 'cs-CZ'; speechSynthesis.speak(u); speechSynthesis.getVoices(); } catch { /* bez hlasu */ }
+  }
+};
+for (const ev of ['touchend', 'pointerdown', 'keydown']) addEventListener(ev, unlockSound, { capture: true, passive: true });
 function toggleHelp(show) {
   const el = $('controls');
   el.hidden = show === undefined ? !el.hidden : !show;
@@ -185,7 +198,7 @@ async function run(city, progress) {
   if (FROM_BASU) {
     const l = game.landmarks.find((x) => x.prisonInside);
     if (l) game.teleport(l);
-    hud.toast(input.touch ? 'Věznice Vinařice – nahoře jsou tlačítka (posuň je prstem do strany): obědy, večeře, eskorty, hasiči, policie.' : 'Věznice Vinařice – tlačítka vlevo nahoře: obědy, večeře, eskorty, hasiči, policie, koně. Tab = ovládání.');
+    hud.toast(input.touch ? 'Věznice Vinařice – vlevo nahoře ☰ Věznice: obědy, večeře, eskorty, hasiči, policie, teleport.' : 'Věznice Vinařice – tlačítka vlevo nahoře: obědy, večeře, eskorty, hasiči, policie, koně. Tab = ovládání.');
   }
 
   addEventListener('resize', () => {
@@ -284,6 +297,14 @@ async function run(city, progress) {
     last = now;
     // menu klávesy
     if (input.hit('Tab') || input.hit('F1')) toggleHelp();
+    if (input.touch) {
+      // dotyková tlačítka: popisky podle toho, co právě dělají
+      const air = game.mode === 'heli' || (game.mode === 'foot' && game.jetpack);
+      const st = game.mode === 'car' ? ['🛑', ''] : air ? ['▲', '▼'] : ['⤒', '🏃'];
+      if (tbUp.textContent !== st[0]) tbUp.textContent = st[0];
+      if (tbDown.textContent !== (st[1] || '🏃')) tbDown.textContent = st[1] || '🏃';
+      tbDown.style.visibility = st[1] ? '' : 'hidden';
+    }
     // M: se zbraní v ruce (pěšky) střílí, jinak velká mapa
     const armed = game.mode === 'foot' && game.weapons?.slot > 0;
     if (input.hit('KeyM') && (!armed || hud.bigMapOpen)) { if (hud.bigMapOpen) hud.closeBigMap(); else hud.openBigMap(game); }

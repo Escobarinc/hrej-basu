@@ -41,5 +41,6 @@ Data © přispěvatelé OpenStreetMap (ODbL), ortofoto © ČÚZK. Three.js (MIT)
 `vinarice/` je kopie hry Hrej Vinařice (js, css, data, assets/cars, assets/chars) s Three.js z CDN (jsdelivr, three@0.170.0).
 Na mapě ČR tlačítko „Vstoupit do věznice“ u Vinařic otevře `vinarice/?veznice`: hra se sama spustí uvnitř věznice
 (obědy, večeře, eskortní autobusy, hasiči, policie, koně, restart, klávesy) a nahoře je odkaz zpět na mapu.
-Kopie se od originálu liší jen v `index.html` (importmap, odkaz zpět) a `js/main.js` (blok `FROM_BASU`).
+Kopie odpovídá originálu na commitu 963bce2 a liší se jen v `index.html` (odkaz zpět a jeho styl pro mobil) a `js/main.js` (blok `FROM_BASU`).
+Aktualizace: `git -C "../HREJ VINARICE" diff <starý>..<nový> -- . ':!tools' | patch -p1` ve složce `vinarice/`.
 Po změnách v HREJ VINARICE je potřeba kopii obnovit a tyto dvě úpravy znovu doplnit.

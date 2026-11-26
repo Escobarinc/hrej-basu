@@ -1,4 +1,4 @@
-import { fmtMoney } from './util.js';
+import { fmtMoney } from './util.js?v=20261126120914';
 
 const $ = (id) => document.getElementById(id);
 const MAP_SCALE = 0.5; // px na metr v předrenderované mapě
@@ -229,6 +229,7 @@ export class Hud {
       b.onclick = () => { game.teleport(l); this.closeTeleport(); };
       t.appendChild(b);
     }
+    this.closeBtn(t);
     t.hidden = false;
     if (document.pointerLockElement) document.exitPointerLock();
   }
@@ -249,8 +250,15 @@ export class Hud {
       b.onclick = () => { game.navTo(l); this.closeTeleport(); };
       t.appendChild(b);
     }
+    this.closeBtn(t);
     t.hidden = false;
     if (document.pointerLockElement) document.exitPointerLock();
+  }
+  closeBtn(t) {
+    const x = document.createElement('button');
+    x.className = 'tp-x'; x.textContent = '✕ Zavřít';
+    x.onclick = (e) => { e.stopPropagation(); this.closeTeleport(); };
+    t.querySelector('h3').after(x);
   }
   closeTeleport() { this.el.teleport.hidden = true; }
   get teleportOpen() { return !this.el.teleport.hidden; }
