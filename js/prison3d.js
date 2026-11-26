@@ -11,6 +11,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 const M = 111320;
 const UNIFORM = '#4a5a70', UNIFORM2 = '#3c4a5c', GUARD = '#1b2433', SKIN = ['#e0b896', '#d2a27f', '#c18c6a', '#ebc7a8'];
+const TOUCH = matchMedia('(pointer: coarse)').matches;
 const DRIVE = new Set(['service', 'residential', 'unclassified', 'tertiary', 'secondary', 'primary', 'trunk', 'living_street', 'track']);
 
 // ---------- geometrie ----------
@@ -203,7 +204,7 @@ export class PrisonView {
   constructor(canvas) {
     this.canvas = canvas;
     const r = this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    r.setPixelRatio(Math.min(devicePixelRatio, 2));
+    r.setPixelRatio(Math.min(devicePixelRatio, TOUCH ? 1.5 : 2));
     r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
     r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
     this.scene = new THREE.Scene();
@@ -211,7 +212,7 @@ export class PrisonView {
     this.controls = new OrbitControls(this.camera, canvas);
     Object.assign(this.controls, { enableDamping: true, dampingFactor: 0.08, maxPolarAngle: Math.PI * 0.47, minDistance: 8, screenSpacePanning: false });
     this.hemi = new THREE.HemisphereLight('#dfe9f5', '#5a5648', 1.1); this.scene.add(this.hemi);
-    this.sun = new THREE.DirectionalLight('#fff3df', 2.4); this.sun.castShadow = true; this.sun.shadow.mapSize.set(4096, 4096);
+    this.sun = new THREE.DirectionalLight('#fff3df', 2.4); this.sun.castShadow = true; this.sun.shadow.mapSize.set(TOUCH ? 2048 : 4096, TOUCH ? 2048 : 4096);
     this.sun.shadow.bias = -0.0004; this.sun.shadow.normalBias = 0.4; this.scene.add(this.sun, this.sun.target);
     this.ray = new THREE.Raycaster();
     this.keys = new Set();
@@ -223,7 +224,20 @@ export class PrisonView {
     canvas.addEventListener('pointermove', (e) => {
       if (this.walk && this.look) { this.yaw -= (e.clientX - this.look[0]) * 0.004; this.pitch = Math.max(-1.2, Math.min(1.2, this.pitch - (e.clientY - this.look[1]) * 0.004)); this.look = [e.clientX, e.clientY]; }
     });
-    canvas.addEventListener('pointerup', (e) => { this.look = null; if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < 5) this.click(e); down = null; });
+    canvas.addEventListener('pointerup', (e) => { this.look = null; if (down && Math.hypot(e.clientX - down[0], e.clientY - down[1]) < (TOUCH ? 12 : 5)) this.click(e); down = null; });
+    // dotykový joystick pro procházku
+    const joy = document.getElementById('v3-joy'), knob = joy.firstElementChild;
+    this.joy = { x: 0, y: 0 };
+    const jmove = (e) => {
+      const r = joy.getBoundingClientRect(), R = r.width / 2;
+      let dx = e.clientX - r.left - R, dy = e.clientY - r.top - R; const l = Math.hypot(dx, dy);
+      if (l > R) { dx *= R / l; dy *= R / l; }
+      this.joy = { x: dx / R, y: dy / R }; knob.style.transform = `translate(${dx}px,${dy}px)`;
+    };
+    joy.addEventListener('pointerdown', (e) => { e.stopPropagation(); joy.setPointerCapture(e.pointerId); jmove(e); });
+    joy.addEventListener('pointermove', (e) => { if (joy.hasPointerCapture(e.pointerId)) jmove(e); });
+    const jend = () => { this.joy = { x: 0, y: 0 }; knob.style.transform = ''; };
+    joy.addEventListener('pointerup', jend); joy.addEventListener('pointercancel', jend);
     document.getElementById('v3-bus').onclick = () => this.setMode(this.mode === 'bus' ? 'orbit' : 'bus');
     document.getElementById('v3-walk').onclick = () => this.setMode(this.mode === 'walk' ? 'orbit' : 'walk');
     document.getElementById('v3-night').onclick = () => this.setNight(!this.night);
@@ -587,17 +601,27 @@ export class PrisonView {
     document.getElementById('v3-bus').classList.toggle('on', m === 'bus');
     document.getElementById('v3-walk').classList.toggle('on', m === 'walk');
     this.controls.enabled = m === 'orbit';
-    document.getElementById('v3-hint').textContent = m === 'walk' ? 'W A S D chůze · Shift běh · táhni myší = rozhlížení' : m === 'bus' ? 'Kamera sleduje eskortní autobus' : 'Myš: otáčení · pravé tlačítko: posun · kolečko: zoom · klikni na budovu';
+    document.getElementById('v3-joy').hidden = !(m === 'walk' && TOUCH);
+    document.getElementById('v3-hint').textContent = TOUCH
+      ? (m === 'walk' ? 'Joystick = chůze · táhni prstem = rozhlížení' : m === 'bus' ? 'Kamera sleduje eskortní autobus' : 'Prst: otáčení · dva prsty: zoom a posun · ťukni na budovu')
+      : (m === 'walk' ? 'W A S D chůze · Shift běh · táhni myší = rozhlížení' : m === 'bus' ? 'Kamera sleduje eskortní autobus' : 'Myš: otáčení · pravé tlačítko: posun · kolečko: zoom · klikni na budovu');
     if (m === 'orbit' && reset) {
       const s = Math.min(this.size, 900);
-      this.camera.position.set(s * 0.38, s * 0.42, s * 0.62); this.controls.target.set(0, 0, 0); this.controls.maxDistance = this.size * 2.5;
+      if (this.camera.aspect < 0.8) this.camera.position.set(s * 0.18, s * 0.95, s * 0.55); // telefon na výšku: víc shora
+      else this.camera.position.set(s * 0.38, s * 0.42, s * 0.62); this.controls.target.set(0, 0, 0); this.controls.maxDistance = this.size * 2.5;
     }
     if (m === 'orbit' && !reset) { this.controls.target.set(this.camera.position.x + Math.sin(this.yaw || 0) * -20, 0, this.camera.position.z - Math.cos(this.yaw || 0) * 20); }
     if (m === 'walk') {
       const g = this.gate ? this.gate.g.position : new THREE.Vector3();
       const c = this.areas[0] ? centroid(this.areas[0]) : [0, 0];
       let q = this.freeSpot ? this.freeSpot(this.areas[0] || [[-50, -50], [50, -50], [50, 50], [-50, 50]]) : [0, 0];
-      if (this.gate) q = [g.x + (c[0] - g.x) * 0.06, g.z + (c[1] - g.z) * 0.06];
+      // start kousek za bránou: první místo, odkud se dá vykročit všemi směry (ne v budově, ne u zdi)
+      const free = (p) => p && [[2, 0], [-2, 0], [0, 2], [0, -2]].filter(([dx, dz]) => !this.blocked(p, [p[0] + dx, p[1] + dz])).length >= 3;
+      if (this.gate) {
+        const L = Math.hypot(c[0] - g.x, c[1] - g.z) || 1, ux = (c[0] - g.x) / L, uz = (c[1] - g.z) / L;
+        for (let d = 6; d < L; d += 2) { const p = [g.x + ux * d, g.z + uz * d]; if (free(p)) { q = p; break; } }
+      }
+      for (let k = 0; k < 30 && !free(q); k++) q = this.freeSpot(this.areas[0]) || q;
       this.me = new THREE.Vector3(q[0], 1.7, q[1]); this.yaw = Math.atan2(-(c[0] - q[0]), -(c[1] - q[1])); this.pitch = 0;
     }
   }
@@ -659,8 +683,9 @@ export class PrisonView {
       this.camera.position.lerp(want, 1 - Math.exp(-dt * 2.5)); this.camera.lookAt(b.x, 2, b.z);
     } else if (this.mode === 'walk') {
       const k = this.keys, sp = (k.has('ShiftLeft') || k.has('ShiftRight') ? 6 : 2.6) * dt;
-      const f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
-      const s = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
+      let f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
+      let s = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
+      if (this.joy.x || this.joy.y) { f = -this.joy.y; s = this.joy.x; }
       if (k.has('KeyQ')) this.yaw += dt * 1.8; if (k.has('KeyE')) this.yaw -= dt * 1.8;
       const dx = (-Math.sin(this.yaw) * f + Math.cos(this.yaw) * s) * sp, dz = (-Math.cos(this.yaw) * f - Math.sin(this.yaw) * s) * sp;
       const nx = this.me.x + dx, nz = this.me.z + dz;

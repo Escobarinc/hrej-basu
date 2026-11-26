@@ -33,8 +33,12 @@ function renderList(q = '') {
     }
   }
 }
+let listTouched = 0;
+$('#list').addEventListener('pointerdown', () => (listTouched = performance.now()));
+$('#list').addEventListener('scroll', () => (listTouched = performance.now()), true);
 $('#q').addEventListener('input', (e) => renderList(e.target.value));
-$('#btn-list').onclick = () => $('#list').classList.toggle('closed');
+$('#list h2').onclick = () => { if (innerWidth < 820) $('#list').classList.toggle('open'); };
+$('#q').addEventListener('focus', () => $('#list').classList.add('open'));
 renderList();
 
 // ---------- info panel ----------
@@ -97,16 +101,20 @@ function renderInfo() {
 }
 function selectPrison(p, fly) {
   view.sel = { kind: 'prison', o: p }; view.follow = null;
-  if (fly) view.flyTo(p.xy, Math.max(view.scale, view.home.scale * 4.5));
+  if (fly) {
+    const sc = Math.max(view.scale, view.home.scale * 4.5);
+    // na mobilu zakrývá spodní polovinu info panel – věznici posuň do horní části
+    view.flyTo(innerWidth < 820 ? [p.xy[0], p.xy[1] + (innerHeight * 0.22) / sc] : p.xy, sc);
+  }
   renderInfo(); renderList($('#q').value);
-  if (innerWidth < 820) $('#list').classList.add('closed');
+  if (innerWidth < 820) { $('#list').classList.remove('open'); $('#q').blur(); }
 }
 
 // ---------- ovládání mapy ----------
 const cv = $('#map'), ptrs = new Map();
 let drag = null, moved = 0, pinch = null;
 cv.addEventListener('pointerdown', (e) => {
-  cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]);
+  cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.offsetX, e.offsetY]); view.touch = e.pointerType !== 'mouse';
   if (ptrs.size === 1) { drag = { x: e.offsetX, y: e.offsetY }; moved = 0; cv.classList.add('drag'); }
   if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) }; }
 });
@@ -119,7 +127,7 @@ cv.addEventListener('pointermove', (e) => {
   if (drag) {
     const dx = e.offsetX - drag.x, dy = e.offsetY - drag.y; moved += Math.abs(dx) + Math.abs(dy);
     view.cx -= dx / view.scale; view.cy -= dy / view.scale; view.touched = true; drag = { x: e.offsetX, y: e.offsetY }; view.anim = null;
-    if (moved > 6) view.follow = null;
+    if (moved > (view.touch ? 14 : 6)) view.follow = null;
     return;
   }
   const h = view.hit(e.offsetX, e.offsetY);
@@ -136,7 +144,7 @@ const up = (e) => {
   if (ptrs.size < 2) pinch = null;
   if (drag && ptrs.size === 0) {
     cv.classList.remove('drag');
-    if (moved < 6) {
+    if (moved < (view.touch ? 14 : 6)) {
       const h = view.hit(e.offsetX, e.offsetY);
       if (h && h.kind === 'prison') selectPrison(h.o, false);
       else if (h) { view.sel = h; renderInfo(); }
@@ -183,7 +191,7 @@ function frame(now) {
       $('#clock').textContent = fmtTime(sim.time); $('#day').textContent = `Den ${Math.floor(sim.time / 1440) + 1}`;
       $('#st-buses').textContent = sim.buses.filter((b) => b.state === 'drive').length; $('#st-moved').textContent = sim.moved;
       if (view.sel && !document.querySelector('#info:hover')) renderInfo();
-      if (++infoTimer % 6 === 0 && !document.querySelector('#list:hover')) renderList($('#q').value);
+      if (++infoTimer % 6 === 0 && !document.querySelector('#list:hover') && performance.now() - listTouched > 5000) renderList($('#q').value);
     }
   } else v3?.frame(dt, sim, timeScale);
   requestAnimationFrame(frame);

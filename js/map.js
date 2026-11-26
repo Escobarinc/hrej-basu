@@ -221,7 +221,7 @@ export class MapView {
   }
   fit() {
     const [x0, y0, x1, y1] = this.bb, narrow = this.w < 820;
-    const padL = narrow ? 10 : 360, padR = narrow ? 10 : 30, padT = 90, padB = narrow ? this.h * 0.45 : 40;
+    const padL = narrow ? 8 : 360, padR = narrow ? 8 : 30, padT = narrow ? 70 : 90, padB = narrow ? 80 : 40;
     this.scale = Math.min((this.w - padL - padR) / (x1 - x0), (this.h - padT - padB) / (y1 - y0));
     this.cx = (x0 + x1) / 2 - ((padL - padR) / 2) / this.scale;
     this.cy = (y0 + y1) / 2 - ((padT - padB) / 2) / this.scale;
@@ -238,8 +238,8 @@ export class MapView {
   }
   flyTo(xy, scale) { this.touched = true; this.anim = { from: { cx: this.cx, cy: this.cy, scale: this.scale }, to: { cx: xy[0], cy: xy[1], scale: scale || Math.max(this.scale, this.home.scale * 5) }, t: 0 }; }
   hit(sx, sy) {
-    for (const b of this.sim.buses) { if (b.state !== 'drive') continue; const [x, y] = this.toScreen(b.pos); if (Math.hypot(x - sx, y - sy) < 11) return { kind: 'bus', o: b }; }
-    let best = null, bd = 15;
+    for (const b of this.sim.buses) { if (b.state !== 'drive') continue; const [x, y] = this.toScreen(b.pos); if (Math.hypot(x - sx, y - sy) < (this.touch ? 18 : 11)) return { kind: 'bus', o: b }; }
+    let best = null, bd = this.touch ? 24 : 15;
     for (const p of this.sim.prisons) { const [x, y] = this.toScreen(p.xy); const d = Math.hypot(x - sx, y - sy); if (d < bd) { bd = d; best = { kind: 'prison', o: p }; } }
     return best;
   }

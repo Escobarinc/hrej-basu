@@ -185,7 +185,7 @@ async function run(city, progress) {
   if (FROM_BASU) {
     const l = game.landmarks.find((x) => x.prisonInside);
     if (l) game.teleport(l);
-    hud.toast('Věznice Vinařice – tlačítka vlevo nahoře: obědy, večeře, eskorty, hasiči, policie, koně. Tab = ovládání.');
+    hud.toast(input.touch ? 'Věznice Vinařice – nahoře jsou tlačítka (posuň je prstem do strany): obědy, večeře, eskorty, hasiči, policie.' : 'Věznice Vinařice – tlačítka vlevo nahoře: obědy, večeře, eskorty, hasiči, policie, koně. Tab = ovládání.');
   }
 
   addEventListener('resize', () => {
