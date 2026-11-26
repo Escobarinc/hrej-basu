@@ -1,0 +1,4 @@
+node_modules/
+tools/_osm/
+.DS_Store
+__pycache__/

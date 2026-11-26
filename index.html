@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Hrej Basu – všechny české věznice na jedné mapě</title>
+<meta name="description" content="Mapa všech věznic Vězeňské služby ČR. Eskortní autobusy jezdí mezi věznicemi po skutečných silnicích a do každé věznice se můžeš podívat ve 3D.">
+<meta name="theme-color" content="#121418">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/" } }
+</script>
+</head>
+<body>
+<!-- MAPA ČR -->
+<main id="mapview">
+  <canvas id="map"></canvas>
+
+  <header class="topbar">
+    <h1 class="logo"><span>Hrej</span><b>Basu</b></h1>
+    <div class="clock-box">
+      <strong id="clock">06:00</strong><small id="day">Den 1</small>
+      <div class="speed" role="group" aria-label="Rychlost času">
+        <button data-s="0" title="Pauza">❚❚</button>
+        <button data-s="60" title="60×">1×</button>
+        <button data-s="240" class="on" title="240×">4×</button>
+        <button data-s="900" title="900×">15×</button>
+      </div>
+    </div>
+    <div class="stats"><b id="st-prisons">0</b><small>věznic</small><b id="st-buses">0</b><small>eskort na cestě</small><b id="st-moved">0</b><small>převezeno</small></div>
+  </header>
+
+  <aside id="list" class="panel list">
+    <div class="list-head">
+      <h2>Seznam věznic</h2>
+      <input id="q" type="search" placeholder="Hledat věznici, město, kraj…" autocomplete="off">
+      <div class="legend"><i class="dot v"></i>věznice <i class="dot vv"></i>vazební věznice <i class="dot z"></i>pro ženy</div>
+    </div>
+    <ol id="plist"></ol>
+  </aside>
+
+  <aside id="info" class="panel info" hidden></aside>
+  <div id="tip" class="tip" hidden></div>
+  <div class="map-hint">Kolečko = zoom · táhni = posun · klikni na věznici nebo na autobus</div>
+  <button id="btn-list" class="fab" title="Seznam věznic">☰</button>
+</main>
+
+<!-- 3D VĚZNICE -->
+<section id="view3d" hidden>
+  <canvas id="c3d"></canvas>
+  <div class="v3-top">
+    <button id="v3-back" class="btn">← Mapa ČR</button>
+    <div class="v3-title"><strong id="v3-name"></strong><small id="v3-sub"></small></div>
+    <div class="v3-tools">
+      <button id="v3-bus" class="btn ghost">Sledovat eskortu</button>
+      <button id="v3-walk" class="btn ghost">Projít se</button>
+      <button id="v3-night" class="btn ghost">Noc</button>
+    </div>
+  </div>
+  <div id="v3-load" class="v3-load"><div class="bar"><i id="v3-bar"></i></div><span id="v3-lt">Načítám areál…</span></div>
+  <div id="v3-pick" class="v3-pick" hidden></div>
+  <div id="v3-log" class="v3-log"></div>
+  <div class="v3-hint" id="v3-hint">Myš: otáčení · pravé tlačítko: posun · kolečko: zoom · klikni na budovu</div>
+</section>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
